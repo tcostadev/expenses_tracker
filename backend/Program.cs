@@ -33,5 +33,6 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseCors("AllowAll");
 app.MapControllers();
+app.MapGet("/", () => "API is running");
 
 app.Run();
