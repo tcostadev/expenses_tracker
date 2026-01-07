@@ -1,0 +1,48 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.tmp
+*.log
+*.vs/
+.vscode/
+*.swp
+*.swo
+*~
+
+# SQLite
+*.db
+*.db-shm
+*.db-wal
+
+# IDE
+.idea/
+*.tmp_proj
+
+# OS
+.DS_Store
+Thumbs.db
+
+# NuGet
+packages/
+*.nupkg
+
+# Build
+*.exe
+*.dll
+*.pdb
+
+# Publish
+publish/
+out/
+
+# Environment
+.env
+appsettings.Development.json
+
+# Node (if any)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

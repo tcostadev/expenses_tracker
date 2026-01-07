@@ -1,0 +1,168 @@
+@page "/expenses"
+@using frontend.Models
+@using frontend.Services
+@inject ExpenseService ExpenseService
+
+<h3>Expenses</h3>
+
+@if (groupedExpenses == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div class="card">
+        <div class="card-body">
+            <div class="d-flex justify-content-end mb-3">
+                <button class="btn btn-primary" @onclick="ShowAddForm" title="Add Expense">
+                    <i class="bi bi-plus-circle"></i>
+                </button>
+            </div>
+            @foreach (var group in groupedExpenses)
+            {
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><span class="badge bg-primary">@group.Key - @group.Sum(e => e.Value).ToString("C")</span></h5>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th style="width: 20%;">Category</th>
+                                    <th style="width: 20%;">Value (€)</th>
+                                    <th style="width: 20%;">Date</th>
+                                    <th style="width: 25%;">Description</th>
+                                    <th style="width: 15%;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var expense in group)
+                                {
+                                    <tr>
+                                        <td>@expense.Category</td>
+                                        <td>@expense.Value.ToString("C")</td>
+                                        <td>@expense.Date.ToShortDateString()</td>
+                                        <td>@expense.Description</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-warning me-2" @onclick="() => EditExpense(expense.Id)" title="Edit">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteExpense(expense.Id)" title="Delete">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@if (showModal)
+{
+    <div class="modal fade show" style="display:block;" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@(editingId == 0 ? "Add Expense" : "Edit Expense")</h5>
+                    <button type="button" class="btn-close" @onclick="CancelEdit"></button>
+                </div>
+                <div class="modal-body">
+                    <EditForm Model="newExpense" OnValidSubmit="SaveExpense">
+                        <DataAnnotationsValidator />
+                        <div class="mb-3">
+                            <label class="form-label">Category</label>
+                            <InputSelect @bind-Value="newExpense.Category" class="form-select">
+                                @foreach (var cat in Enum.GetValues<ExpenseCategory>())
+                                {
+                                    <option value="@cat">@cat</option>
+                                }
+                            </InputSelect>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Value</label>
+                            <InputNumber @bind-Value="newExpense.Value" class="form-control" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Date</label>
+                            <InputDate @bind-Value="newExpense.Date" class="form-control" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <InputText @bind-Value="newExpense.Description" class="form-control" />
+                        </div>
+                        <div class="d-flex justify-content-end">
+                            <button type="submit" class="btn btn-success">@(editingId == 0 ? "Add" : "Update")</button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+@code {
+    private IEnumerable<IGrouping<string, Expense>>? groupedExpenses;
+    private Expense newExpense = new();
+    private bool showModal = false;
+    private int editingId = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadExpenses();
+    }
+
+    private async Task LoadExpenses()
+    {
+        var expenses = await ExpenseService.GetExpensesAsync();
+        groupedExpenses = expenses.OrderByDescending(e => e.Date).GroupBy(e => e.Date.ToString("MMMM yyyy"));
+    }
+
+    private void ShowAddForm()
+    {
+        newExpense = new Expense { Date = DateTime.Now };
+        editingId = 0;
+        showModal = true;
+    }
+
+    private async Task EditExpense(int id)
+    {
+        var expense = await ExpenseService.GetExpenseAsync(id);
+        if (expense != null)
+        {
+            newExpense = expense;
+            editingId = id;
+            showModal = true;
+        }
+    }
+
+    private async Task SaveExpense()
+    {
+        if (editingId == 0)
+        {
+            await ExpenseService.CreateExpenseAsync(newExpense);
+        }
+        else
+        {
+            await ExpenseService.UpdateExpenseAsync(editingId, newExpense);
+        }
+        showModal = false;
+        await LoadExpenses();
+    }
+
+    private void CancelEdit()
+    {
+        showModal = false;
+    }
+
+    private async Task DeleteExpense(int id)
+    {
+        await ExpenseService.DeleteExpenseAsync(id);
+        await LoadExpenses();
+    }
+}
